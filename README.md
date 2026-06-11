@@ -1,8 +1,8 @@
-﻿# Codealpha Tasks
+﻿# Codealpha Tasks1
 
 ## 🛒 Ecommerce Store Project
 
-A fully functional ecommerce store built as part of CodeAlpha internship tasks.
+A fully functional ecommerce store 
 
 ## 🛠️ Technologies Used
 - React.js
@@ -10,11 +10,11 @@ A fully functional ecommerce store built as part of CodeAlpha internship tasks.
 - HTML & CSS
 - JavaScript
 
-## 🚀 Features
+##  Features
 - Product listing
 - Shopping cart
 - Responsive design
 
-## 👨‍💻 Developer
+##  Developer
 - **Saurav Surase** — [GitHub](https://github.com/sauravsurase-2007)
 
