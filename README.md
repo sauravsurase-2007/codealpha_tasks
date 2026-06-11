@@ -1,20 +1,20 @@
 ﻿# Codealpha Tasks1
 
-## 🛒 Ecommerce Store Project
+## Ecommerce Store Project 
 
 A fully functional ecommerce store 
 
-## 🛠️ Technologies Used
+## Technologies Used
 - React.js
 - Node.js
 - HTML & CSS
 - JavaScript
 
-##  Features
+## Features
 - Product listing
 - Shopping cart
 - Responsive design
 
-##  Developer
+## Developer
 - **Saurav Surase** — [GitHub](https://github.com/sauravsurase-2007)
 
