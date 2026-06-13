@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout — Lumière</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-brand">SS <span>Shopping Mall</span></a>
+  <div class="nav-links">
+    <a href="/cart">← Back to Cart</a>
+  </div>
+</nav>
+
+<div class="container page">
+  <div class="section-header">
+    <h2>Checkout</h2>
+    <p>Almost there! Fill in your details to complete your order.</p>
+  </div>
+
+  <div id="checkout-content">
+    <div class="loading"><div class="spinner"></div><p>Loading...</p></div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="/js/app.js"></script>
+<script>
+  let cartItems = [];
+
+  async function loadCheckout() {
+    const user = await getUser();
+    if (!user) { window.location.href = '/login'; return; }
+
+    const res = await fetch('/api/cart', { credentials: 'include' });
+    cartItems = await res.json();
+
+    if (!cartItems.length) { window.location.href = '/cart'; return; }
+
+    const subtotal = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
+    const shipping = subtotal >= 50 ? 0 : 5.99;
+    const total = subtotal + shipping;
+
+    document.getElementById('checkout-content').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 360px;gap:32px;align-items:start">
+        <div>
+          <!-- Shipping Info -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:24px">
+            <h3 style="margin-bottom:20px;font-size:18px">📦 Shipping Information</h3>
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" id="ship-name" value="${user.name}" placeholder="Your full name"/>
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="ship-email" value="${user.email}" placeholder="your@email.com"/>
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="tel" id="ship-phone" value="${user.phone || ''}" placeholder="+1 (555) 000-0000"/>
+            </div>
+            <div class="form-group">
+              <label>Shipping Address</label>
+              <input type="text" id="ship-address" value="${user.address || ''}" placeholder="123 Main St, City, State, ZIP"/>
+            </div>
+          </div>
+
+          <!-- Payment -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px">
+            <h3 style="margin-bottom:20px;font-size:18px">💳 Payment Method</h3>
+            <div style="display:grid;gap:10px">
+              <label style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--bg3);border:2px solid var(--accent);border-radius:10px;cursor:pointer">
+                <input type="radio" name="payment" value="Credit Card" checked style="accent-color:var(--accent)"/>
+                <span>💳 Credit / Debit Card</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;cursor:pointer">
+                <input type="radio" name="payment" value="PayPal" style="accent-color:var(--accent)"/>
+                <span>🅿️ PayPal</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;cursor:pointer">
+                <input type="radio" name="payment" value="Cash on Delivery" style="accent-color:var(--accent)"/>
+                <span>💵 Cash on Delivery</span>
+              </label>
+            </div>
+            <div id="card-fields" style="margin-top:20px">
+              <div class="form-group">
+                <label>Card Number</label>
+                <input type="text" placeholder="4242 4242 4242 4242" maxlength="19" oninput="this.value=this.value.replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim()"/>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Expiry</label>
+                  <input type="text" placeholder="MM / YY" maxlength="7"/>
+                </div>
+                <div class="form-group">
+                  <label>CVV</label>
+                  <input type="text" placeholder="123" maxlength="4"/>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="order-summary">
+          <h3>Order Summary</h3>
+          ${cartItems.map(i => `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+              <img src="${i.image}" style="width:48px;height:48px;object-fit:cover;border-radius:8px" onerror="this.src='https://via.placeholder.com/48x48/1a1a1a/666?text=?'"/>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600">${i.name}</div>
+                <div style="font-size:12px;color:var(--text3)">Qty: ${i.quantity}</div>
+              </div>
+              <div style="font-weight:700;font-size:14px">${formatPrice(i.price * i.quantity)}</div>
+            </div>
+          `).join('')}
+          <div class="summary-line"><span>Subtotal</span><span>${formatPrice(subtotal)}</span></div>
+          <div class="summary-line"><span>Shipping</span><span>${shipping === 0 ? '<span style="color:var(--green)">Free</span>' : formatPrice(shipping)}</span></div>
+          <div class="summary-line total"><span>Total</span><span>${formatPrice(total)}</span></div>
+          <div id="order-error" class="form-error"></div>
+          <button class="btn btn-primary btn-full" style="margin-top:16px;padding:16px;font-size:16px" onclick="placeOrder()">
+            ✓ Place Order — ${formatPrice(total)}
+          </button>
+          <p style="font-size:12px;color:var(--text3);text-align:center;margin-top:12px">🔒 Secure checkout. Your info is safe.</p>
+        </div>
+      </div>`;
+
+    // Toggle card fields based on payment
+    document.querySelectorAll('input[name="payment"]').forEach(r => {
+      r.addEventListener('change', () => {
+        document.getElementById('card-fields').style.display = r.value === 'Credit Card' ? 'block' : 'none';
+      });
+    });
+  }
+
+  async function placeOrder() {
+    const address = document.getElementById('ship-address').value.trim();
+    const payment = document.querySelector('input[name="payment"]:checked').value;
+    const errEl = document.getElementById('order-error');
+
+    if (!address) {
+      errEl.textContent = 'Please enter a shipping address'; errEl.style.display = 'block'; return;
+    }
+    errEl.style.display = 'none';
+
+    const btn = document.querySelector('[onclick="placeOrder()"]');
+    btn.disabled = true; btn.textContent = 'Placing order...';
+
+    const res = await fetch('/api/orders/place', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shipping_address: address, payment_method: payment })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById('checkout-content').innerHTML = `
+        <div class="empty-state">
+          <div class="icon">🎉</div>
+          <h2>Order Confirmed!</h2>
+          <p>Thank you for your purchase. Order #${data.orderId} — Total: ${formatPrice(data.total)}</p>
+          <div style="display:flex;gap:12px;justify-content:center;margin-top:8px">
+            <a href="/orders" class="btn btn-primary">View My Orders</a>
+            <a href="/" class="btn btn-outline">Continue Shopping</a>
+          </div>
+        </div>`;
+    } else {
+      const d = await res.json();
+      errEl.textContent = d.error || 'Failed to place order'; errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Place Order';
+    }
+  }
+
+  loadCheckout();
+</script>
+</body>
+</html>

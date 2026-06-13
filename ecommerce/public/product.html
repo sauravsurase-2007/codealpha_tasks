@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product — Lumière</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">SS <span>Shopping Mall</span></a>
+  <div class="nav-links">
+    <a href="/">← Back</a>
+    <div id="auth-links"></div>
+    <a href="/cart" class="btn-cart" style="padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;position:relative">
+      🛒 Cart <span class="cart-badge" id="cart-badge" style="display:none">0</span>
+    </a>
+  </div>
+</nav>
+
+<div class="container page">
+  <div id="product-content">
+    <div class="loading"><div class="spinner"></div><p>Loading product...</p></div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="/js/app.js"></script>
+<script>
+  const productId = window.location.pathname.split('/').pop();
+  let quantity = 1;
+
+  async function loadProduct() {
+    const res = await fetch(`/api/products/${productId}`);
+    if (!res.ok) { document.getElementById('product-content').innerHTML = '<div class="empty-state"><div class="icon">😔</div><h2>Product not found</h2><a href="/" class="btn btn-primary">Back to Store</a></div>'; return; }
+    const p = await res.json();
+    document.title = `${p.name} — Lumière`;
+
+    document.getElementById('product-content').innerHTML = `
+      <div class="product-detail">
+        <div class="product-detail-img">
+          <img src="${p.image}" alt="${p.name}" onerror="this.src='https://via.placeholder.com/600x600/1a1a1a/666?text=Product'"/>
+        </div>
+        <div class="product-detail-info">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <span style="background:var(--bg3);border:1px solid var(--border);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--text2)">${p.category}</span>
+            ${p.badge ? `<span style="background:var(--accent);color:#000;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700">${p.badge}</span>` : ''}
+          </div>
+          <h1 class="product-detail-info" style="font-family:'Playfair Display',serif;font-size:36px;margin-bottom:12px">${p.name}</h1>
+          
+          <div class="product-rating" style="margin-bottom:16px">
+            <span class="stars" style="font-size:18px">${renderStars(p.rating)}</span>
+            <span style="color:var(--accent);font-weight:700;margin-left:4px">${p.rating}</span>
+            <span class="rating-count">(${p.reviews.toLocaleString()} reviews)</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+            <span style="font-size:36px;font-weight:700;color:var(--accent)">$${parseFloat(p.price).toFixed(2)}</span>
+            ${p.original_price ? `<span style="font-size:20px;color:var(--text3);text-decoration:line-through">$${parseFloat(p.original_price).toFixed(2)}</span>
+            <span style="background:rgba(80,200,120,0.15);color:var(--green);padding:4px 10px;border-radius:6px;font-size:13px;font-weight:700">
+              Save $${(p.original_price - p.price).toFixed(2)}
+            </span>` : ''}
+          </div>
+
+          <div class="stock-badge">
+            <span class="stock-dot"></span>
+            <span style="color:var(--green);font-weight:600">${p.stock > 10 ? 'In Stock' : `Only ${p.stock} left`}</span>
+          </div>
+
+          <p class="product-detail-desc">${p.description}</p>
+
+          <hr class="divider" />
+
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+            <span style="color:var(--text2);font-size:14px;font-weight:600">Quantity:</span>
+            <div class="qty-control">
+              <button class="qty-btn" onclick="changeQty(-1)">−</button>
+              <span class="qty-val" id="qty-display">1</span>
+              <button class="qty-btn" onclick="changeQty(1)">+</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px">
+            <button class="btn btn-primary" style="flex:1;padding:16px" onclick="handleAddToCart()">
+              🛒 Add to Cart
+            </button>
+            <button class="btn btn-secondary" style="flex:1;padding:16px" onclick="handleBuyNow()">
+              Buy Now →
+            </button>
+          </div>
+
+          <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+            <div style="text-align:center;padding:16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px">
+              <div style="font-size:20px;margin-bottom:4px">🚚</div>
+              <div style="font-size:12px;color:var(--text2)">Free shipping over $50</div>
+            </div>
+            <div style="text-align:center;padding:16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px">
+              <div style="font-size:20px;margin-bottom:4px">🔄</div>
+              <div style="font-size:12px;color:var(--text2)">30-day returns</div>
+            </div>
+            <div style="text-align:center;padding:16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px">
+              <div style="font-size:20px;margin-bottom:4px">🛡️</div>
+              <div style="font-size:12px;color:var(--text2)">2-year warranty</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function changeQty(delta) {
+    quantity = Math.max(1, quantity + delta);
+    document.getElementById('qty-display').textContent = quantity;
+  }
+
+  async function handleAddToCart() {
+    await addToCart(productId, quantity);
+  }
+
+  async function handleBuyNow() {
+    await addToCart(productId, quantity);
+    window.location.href = '/cart';
+  }
+
+  loadProduct();
+</script>
+</body>
+</html>
