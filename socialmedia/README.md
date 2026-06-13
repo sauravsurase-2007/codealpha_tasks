@@ -1,4 +1,4 @@
-# 🌐 Friendzy — Mini Social Media Platform
+# 🌐 Friendzy — Mini Social Media Platform Codealpha Tasks2
 
 A full-stack social media app built with **Express.js**, **SQL.js**, and **Vanilla JS**.
 
